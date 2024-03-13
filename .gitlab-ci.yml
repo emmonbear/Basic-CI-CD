@@ -1,0 +1,48 @@
+stages:
+    - style
+    - build
+    - test
+    - deploy
+
+build_job:
+    stage: build
+    tags:
+        - build
+    script:
+        - (cd src/cat && make)
+        - (cd src/grep && make)
+    after_script:
+        - bash src/checks/telegram.sh
+    artifacts:
+        paths:
+            - src/cat/s21_cat
+            - src/grep/s21_grep
+        expire_in: 30 days
+
+style_job:
+    stage: style
+    tags:
+        - style
+    script:
+        - bash src/checks/codestyle.sh
+    after_script:
+        - echo $CI_JOB_STATUS
+        - bash src/checks/telegram.sh
+
+test_job:
+    stage: test
+    tags:
+        - test
+    script:
+        - bash src/checks/testing.sh
+    after_script:
+        - bash src/checks/telegram.sh
+
+deploy_job:
+    stage: deploy
+    tags:
+        - deploy
+    script:
+        - bash src/checks/deploy.sh
+    after_script:
+        - bash src/checks/telegram.sh

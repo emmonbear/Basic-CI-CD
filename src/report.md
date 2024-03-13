@@ -1,85 +1,205 @@
-# Basic CI/CD
+# PROJECT NAME
 
 ## Содержание
 
 1. [Part 1. Настройка gitlab-runner](#part-1-настройка-gitlab-runner)
-2. [Part 2. Сборка](#part-1-настройка-gitlab-runner)
-3. [Part 3. Тест кодстайла](#part-1-настройка-gitlab-runner)
-4. [Part 4. Интеграционные тесты](#part-1-настройка-gitlab-runner)
-5. [Part 5. Этап деплоя](#part-1-настройка-gitlab-runner)
-6. [Part 6. Дополнительно. Уведомления](#part-1-настройка-gitlab-runner)
+    1. [Скачать  gitlab-runner](#зарегистрировать-gitlab-runner)
+    2. [Скачать и установить gitlab-runner](#скачать-и-установить-gitlab-runner)
+2. [Part 2. Сборка](#part-2-сборка)
+    1. [Напиcать этап для CI по сборке приложений из проекта SimpleBashUtils](#напиcать-этап-для-ci-по-сборке-приложений-из-проекта-simplebashutils)
+3. [Part 3. Тест кодстайла](#part-3-тест-кодстайла)
+    1. [Написать этап для CI, который запускает скрипт кодстайла (clang-format)](#написать-этап-для-ci-который-запускает-скрипт-кодстайла-clang-format)
+4. [Part 4. Интеграционные тесты](#part-4-интеграционные-тесты)
+    1. [Написать этап для CI, который запускает интеграционные тесты](#написать-этап-для-ci-который-запускает-интеграционные-тесты)
+5. [Part 5. Этап деплоя](#part-5-этап-деплоя)
+    1. [Написать этап для CD, который «разворачивает» проект на другой виртуальной машине](#написать-этап-для-cd-который-«разворачивает»-проект-на-другой-виртуальной-машине)
+6. [Part 6. Дополнительно. Уведомления](#part-6-дополнительно-уведомления)
+    1. [Настроить уведомления о выполнении пайплайна через бота в Telegram](#настроить-уведомления-о-выполнении-пайплайна-через-бота-в-telegram)
 
 ## Part 1. Настройка gitlab-runner
 
-1. Поднять виртуальную машину `Ubuntu Server 22.04 LTS`:
+### Скачать и установить gitlab-runner
 
-    ![part 1.1](screenshots/Part_1/1.png)
+[Руководство по установке](https://docs.gitlab.com/runner/install/linux-manually.html)
 
-2. Скачать и установить на виртуальную машину `gitlab-runner`:
+1. Скачать бинарный файл:
 
-    ``` bash
-    curl -L "https://packages.gitlab.com/install/repositories/runner/gitlab-runner/script.deb.sh" | sudo bash
+    ```sh
+    sudo curl -L --output /usr/local/bin/gitlab-runner "https://s3.dualstack.us-east-1.amazonaws.com/gitlab-runner-downloads/latest/binaries/gitlab-runner-linux-amd64"
     ```
 
-    ![part 1.2](screenshots/Part_1/2.png)
+2. Дать файлу права на исполнение:
 
-    ``` bash
-    sudo apt-get install gitlab-runner
+    ```sh
+    sudo chmod +x /usr/local/bin/gitlab-runner
     ```
 
-    ![part 1.3](screenshots/Part_1/3.png)
+3. Создать пользователя Gitlab CI:
 
-3. Запустить `gitlab-runner` и зарегистрировать его для использования в текущем проекте (`DO6_CICD`).
+    ```sh
+    sudo useradd --comment 'GitLab Runner' --create-home gitlab-runner --shell /bin/bash
+    ```
 
-    >Для корретной работы Runner его необходимо связать с текущим проектом.
+4. Установить и запустить как службу:
 
-    * Для регистрации раннера необходимы `URL` и `токен`. Их можно взять со страницы Task на платформе:
+    ```sh
+    sudo gitlab-runner install --user=gitlab-runner --working-directory=/home/gitlab-runner
+    sudo gitlab-runner start
+    ```
+   
+   ![1.1](screenshots/1.png)   
 
-        ![part 1.4](screenshots/Part_1/4.png)
+### Зарегистрировать gitlab-runner
 
-    * Запустить `gitlab-runner`:
+1. Скопировать URL и токен со страницы задания на платформе:
 
-        ``` bash
-        sudo gitlab-runner start
-        ```
+    ![1.2](screenshots/2.png)   
 
-        ![part 1.5](screenshots/Part_1/5.png)
+2. Зарегистрировать gitlab-runner на текущем проекте:
 
-    * Зарегистрировать текущий проект:
+    ```sh
+    sudo gitlab-runner register
+    ```
 
-        ``` bash
-        sudo gitlab-runner register
-        ```
-
-        ![part 1.6](screenshots/Part_1/6.png)
-
-
-
-
-
-
+    Далее необходимо заполнить поля регистрации:
     
+    - Ввести URL-адрес GitLab;
 
+    - Ввести токен;
 
+    - Ввести имя раннера;
+
+    - Ввести теги;
+
+    - -- ;
+
+    - Ввести тип исполнителя;
+
+    ![1.3](screenshots/3.png)   
 
 [Содержание](#содержание)
 
 ## Part 2. Сборка
 
+### Напиcать этап для CI по сборке приложений из проекта SimpleBashUtils
+
+1. Создать в корне проекта файл `.gitlab-ci.yml`;
+
+2. В файле gitlab-ci.yml добавить этап запуска сборки через мейк файл из проекта C2;
+
+3. Файлы, полученные после сборки (артефакты), сохранять в произвольную директорию со сроком хранения 30 дней;
+
+    ![2.1](screenshots/4.png) 
+
+> Если возникла ошибка: ERROR: Job failed: prepare environment: exit status 1, то необходимо проверить `/home/gitlab-runner/.bash_logout` и закомментировать строку:
+
+    ```sh
+    if [ "$SHLVL" = 1 ]; then
+        [ -x /usr/bin/clear_console ] && /usr/bin/clear_console -q
+    fi
+    ```
+
+![2.2](screenshots/5.png)   
+
+![2.3](screenshots/6.png) 
+
 [Содержание](#содержание)
 
 ## Part 3. Тест кодстайла
+
+### Написать этап для CI, который запускает скрипт кодстайла (clang-format)
+
+1. Написать скрипт, который будет возвращать код ошибки 1 в случае, если clang-format вернет предупреждение:
+
+    ![3.1](screenshots/7.png)
+    
+2. Обновить `.gitlab-ci.yml`:
+
+    ![3.2](screenshots/8.png)
+
+3. Проверить, что pipeline зафейлится, если код стайл не будет успешно пройден:
+
+    ![3.3](screenshots/9.png)
+
+    ![3.4](screenshots/10.png) 
+
+    ![3.5](screenshots/11.png) 
+
+4. Исправить стиль, и проверить, что pipeline завершится без ошибок:
+
+    ![3.6](screenshots/12.png) 
+
+    ![3.7](screenshots/13.png) 
 
 [Содержание](#содержание)
 
 ## Part 4. Интеграционные тесты
 
+### Написать этап для CI, который запускает интеграционные тесты
+
+1. Написать скрипт, который будет возвращать код ошибки 1 в случае, если хоть один тест завалится:
+
+    ![4.1](screenshots/14.png)
+
+2. Обновить `.gitlab-ci.yml`:
+
+    ![4.2](screenshots/15.png)
+
+3. Проверить, что все тесты пройдены успешно:
+
+    ![4.3](screenshots/16.png)
+
 [Содержание](#содержание)
 
 ## Part 5. Этап деплоя
 
+### Написать этап для CD, который «разворачивает» проект на другой виртуальной машине
+
+1. Поднять вторую виртуальную машину;
+
+2. Настроить статическую маршрутизацию между машинами:
+
+    ![5.1](screenshots/17.png)
+
+    ![5.2](screenshots/18.png)
+
+3. Выполнить на машинах команду:
+
+    ```sh
+    sudo netplan apply
+    ```
+
+4. Проверить соединение между машинами:
+
+    ![5.3](screenshots/19.png)
+
+    ![5.4](screenshots/20.png)
+
+5. Написать bash-скрипт, который при помощи ssh и scp копирует файлы, полученные после сборки (артефакты), в директорию /usr/local/bin второй виртуальной машины.
+
+    ![5.5](screenshots/21.png)
+
+6. Обновить `.gitlab-ci.yml`:
+
+    ![5.6](screenshots/22.png)
+
+7. Необходимо настроить беспарольную передачу файлов на удаленный сервер;
+
+8. Проверка, что все передалось:
+
+    ![5.7](screenshots/23.png)
+
+    ![5.8](screenshots/24.png)
+
+    ![5.9](screenshots/25.png)
+
 [Содержание](#содержание)
 
 ## Part 6. Дополнительно. Уведомления
+
+### Настроить уведомления о выполнении пайплайна через бота в Telegram
+
+![6.1](screenshots/26.png)
+
 
 [Содержание](#содержание)
